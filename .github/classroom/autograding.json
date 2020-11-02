@@ -1,0 +1,84 @@
+{
+  "tests": [  
+    {
+      "name": "Connects Sucessfully",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#processConnected test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 5
+    },
+    {
+      "name": "Disconnects Successfully",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#processDisconnected test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 5
+    },
+    {
+      "name": "Creates Workers Parent Znode",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#createsWorkersParentZnodeDoesntExist test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 10
+    },
+    {
+      "name": "Doesn't Create Workers Parent Znode if Already Exists",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#createsWorkersParentZnodeAlreadyExists test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 7
+    },
+    {
+      "name": "Launches Workers if Necessary",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#launchWorkersIfNecessary test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 18
+    },
+    {
+      "name": "Doesn't Launch Workers if Not Necessary",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#dontLaunchWorkersIfNotNecessary test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 15
+    },
+    {
+      "name": "Process Correct Event",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#processCorrectEvent test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 10
+    },
+    {
+      "name": "Don't Process Incorrect Event",
+      "setup": "",
+      "run": "cd cluster-healer;mvn -q -DskipTests=false -Dtest=ClusterHealerTest#dontProcessInCorrectEvents test",
+      "input": "",
+      "output": "",
+      "comparison": "",
+      "timeout": 2,
+      "points": 5
+    }
+  ]
+}
