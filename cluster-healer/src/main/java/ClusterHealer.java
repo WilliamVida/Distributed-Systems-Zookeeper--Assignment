@@ -15,7 +15,8 @@ public class ClusterHealer implements Watcher {
 
     public static final String ZOOKEEPER_ADDRESS = "localhost:2181";
     public static final int SESSION_TIMEOUT = 3000;
-    private static final String ELECTION_NAMESPACE = "/workers";
+    private static final String WORKERS_PARENT_ZNODE = "/workers";
+    private static final String WORKER_ZNODE = "/worker_";
     private ZooKeeper zooKeeper;
 
     public ClusterHealer(int numberOfWorkers, String pathToProgram) {
@@ -27,9 +28,8 @@ public class ClusterHealer implements Watcher {
         ClusterHealer clusterHealer = new ClusterHealer(numberOfWorkers, pathToProgram);
         clusterHealer.connectToZookeeper();
         for (int i = 0; i < numberOfWorkers; i++) {
-            clusterHealer.startWorker();
+            clusterHealer.initialiseCluster();
         }
-        clusterHealer.startWorker();
         clusterHealer.checkRunningWorkers();
         clusterHealer.run();
 
@@ -42,8 +42,8 @@ public class ClusterHealer implements Watcher {
      * it should be (e.g.persistent, ephemeral etc.). Check if workers need to be launched.
      */
     public void initialiseCluster() throws KeeperException, InterruptedException {
-        String znodePrefix = ELECTION_NAMESPACE + "/worker_";
-        String znodeFullPath = zooKeeper.create(znodePrefix, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        String znodeFullPath = zooKeeper.create(WORKERS_PARENT_ZNODE + WORKER_ZNODE, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+
         System.out.println("znode name " + znodeFullPath);
     }
 
@@ -101,7 +101,7 @@ public class ClusterHealer implements Watcher {
                 }
             case NodeChildrenChanged:
                 try {
-                    if(zooKeeper.getAllChildrenNumber(ELECTION_NAMESPACE) < numberOfWorkers) {
+                    if(zooKeeper.getAllChildrenNumber(WORKERS_PARENT_ZNODE) < numberOfWorkers) {
                         startWorker();
                     }
                 } catch (IOException e) {
@@ -120,7 +120,7 @@ public class ClusterHealer implements Watcher {
      */
     public void checkRunningWorkers() {
         try {
-            System.out.println(zooKeeper.getAllChildrenNumber(ELECTION_NAMESPACE) + " workers are running.");
+            System.out.println(zooKeeper.getAllChildrenNumber(WORKERS_PARENT_ZNODE) + " workers are running.");
         } catch (KeeperException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
