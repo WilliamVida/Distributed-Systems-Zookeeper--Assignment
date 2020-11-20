@@ -1,22 +1,20 @@
 import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 
 public class ClusterHealer implements Watcher {
-
-    // Path to the worker jar
-    private static String pathToProgram = "target/cluster-healer-1.0-SNAPSHOT-jar-with-dependencies.jar";
-    // The number of worker instances we need to maintain at all times
-    private static int numberOfWorkers = 4;
 
     public static final String ZOOKEEPER_ADDRESS = "localhost:2181";
     public static final int SESSION_TIMEOUT = 3000;
     private static final String WORKERS_PARENT_ZNODE = "/workers";
     private static final String WORKER_ZNODE = "/worker_";
+
+    // Path to the worker jar
+    private static String pathToProgram = "target/cluster-healer-1.0-SNAPSHOT-jar-with-dependencies.jar";
+    // The number of worker instances we need to maintain at all times
+    private static int numberOfWorkers;
+    String znodeFullPath = "";
     private ZooKeeper zooKeeper;
 
     public ClusterHealer(int numberOfWorkers, String pathToProgram) {
@@ -24,27 +22,19 @@ public class ClusterHealer implements Watcher {
         this.pathToProgram = pathToProgram;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
-        ClusterHealer clusterHealer = new ClusterHealer(numberOfWorkers, pathToProgram);
-        clusterHealer.connectToZookeeper();
-        for (int i = 0; i < numberOfWorkers; i++) {
-            clusterHealer.initialiseCluster();
-        }
-        clusterHealer.checkRunningWorkers();
-        clusterHealer.run();
-
-        System.out.println("Disconnected from Zookeeper, exiting application");
-        clusterHealer.close();
-    }
-
     /**
      * Check if the `/workers` parent znode exists, and create it if it doesn't. Decide for yourself what type of znode
      * it should be (e.g.persistent, ephemeral etc.). Check if workers need to be launched.
      */
     public void initialiseCluster() throws KeeperException, InterruptedException {
-        String znodeFullPath = zooKeeper.create(WORKERS_PARENT_ZNODE + WORKER_ZNODE, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        String znodePrefix = WORKERS_PARENT_ZNODE + WORKER_ZNODE;
+
+        if (znodeFullPath.isEmpty()) {
+            znodeFullPath = zooKeeper.create(WORKERS_PARENT_ZNODE, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        }
 
         System.out.println("znode name " + znodeFullPath);
+        checkRunningWorkers();
     }
 
     /**
@@ -87,30 +77,15 @@ public class ClusterHealer implements Watcher {
                         zooKeeper.notifyAll();
                     }
                 }
+                break;
             case NodeCreated:
                 System.out.println("Node created.");
                 checkRunningWorkers();
             case NodeDeleted:
-                try {
-                    System.out.println("Received node deletion event.");
-                    initialiseCluster();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (KeeperException e) {
-                    e.printStackTrace();
-                }
+                System.out.println("Nde deleted.");
+                checkRunningWorkers();
             case NodeChildrenChanged:
-                try {
-                    if(zooKeeper.getAllChildrenNumber(WORKERS_PARENT_ZNODE) < numberOfWorkers) {
-                        startWorker();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (KeeperException e) {
-                    e.printStackTrace();
-                }
+                checkRunningWorkers();
         }
     }
 
@@ -121,9 +96,14 @@ public class ClusterHealer implements Watcher {
     public void checkRunningWorkers() {
         try {
             System.out.println(zooKeeper.getAllChildrenNumber(WORKERS_PARENT_ZNODE) + " workers are running.");
+            if (zooKeeper.getAllChildrenNumber(WORKERS_PARENT_ZNODE) < numberOfWorkers) {
+                startWorker();
+            }
         } catch (KeeperException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
